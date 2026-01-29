@@ -1,0 +1,38 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+build/
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+
+# Local notes
+.internal/
+
+# Sample configurations
+samples/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# AI tools
+.claude/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Cache
+.cache/
+.nocc/
