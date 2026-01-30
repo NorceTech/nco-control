@@ -167,6 +167,94 @@ interface MergeEngine {
 }
 ```
 
+#### Merge Order
+
+For MVP (single environment):
+```
+1. Root:    ./{adapter}.yaml           # Shared base config
+2. Channel: ./{channel}/{adapter}.yaml # Channel-specific overrides
+```
+
+Later values win. Channel overrides root.
+
+#### Deep Merge Algorithm
+
+```typescript
+function deepMerge(target, source) {
+  // 1. null = explicit removal
+  if (source === null) return null;
+
+  // 2. undefined = keep target
+  if (source === undefined) return target;
+
+  // 3. Both objects (not arrays) = merge recursively
+  if (isObject(target) && isObject(source)) {
+    const result = { ...target };
+    for (const key of Object.keys(source)) {
+      const merged = deepMerge(target[key], source[key]);
+      if (merged === null) {
+        delete result[key];  // null removes the key
+      } else if (isEmptyObject(merged)) {
+        delete result[key];  // empty object also removed
+      } else {
+        result[key] = merged;
+      }
+    }
+    return result;
+  }
+
+  // 4. Otherwise = source wins (arrays replaced, not merged)
+  return source;
+}
+```
+
+#### Edge Cases
+
+| Scenario | Root | Channel | Result |
+|----------|------|---------|--------|
+| Add field | `{}` | `{a: 1}` | `{a: 1}` |
+| Override field | `{a: 1}` | `{a: 2}` | `{a: 2}` |
+| **Remove field** | `{a: 1}` | `{a: null}` | `{}` |
+| Keep field (implicit) | `{a: 1}` | `{}` | `{a: 1}` |
+| Nested merge | `{a: {b: 1}}` | `{a: {c: 2}}` | `{a: {b: 1, c: 2}}` |
+| Nested override | `{a: {b: 1}}` | `{a: {b: 2}}` | `{a: {b: 2}}` |
+| Nested remove | `{a: {b: 1, c: 2}}` | `{a: {b: null}}` | `{a: {c: 2}}` |
+| **Replace array** | `{a: [1,2]}` | `{a: [3]}` | `{a: [3]}` |
+| Empty array | `{a: [1,2]}` | `{a: []}` | `{a: []}` |
+| Remove array | `{a: [1,2]}` | `{a: null}` | `{}` |
+
+**Key behaviors:**
+- `null` explicitly removes a field (useful for removing inherited values)
+- Arrays are **replaced**, not concatenated (channel array overwrites root array)
+- Empty objects resulting from all-null children are also removed
+
+#### Schema-Aware Merge
+
+To prevent mixing incompatible properties from different adapter versions:
+
+1. Extract `$schema` from channel config (if present)
+2. Extract `$schema` from root config (if present)
+3. If both exist and differ → **skip inheritance** (use channel config only)
+4. If same or only one exists → merge normally
+
+This prevents accidental inheritance when a channel uses a different schema version than the root config.
+
+**Example:**
+```yaml
+# Root: klarna_checkout_adapter.yaml
+$schema: https://.../v1/schemas/klarna_checkout_adapter.json
+options:
+  oldField: true  # v1-only field
+
+# Channel: se-klarna/klarna_checkout_adapter.yaml
+$schema: https://.../v2/schemas/klarna_checkout_adapter.json
+id: klarna_checkout_adapter
+options:
+  newField: true  # v2-only field
+```
+
+Result: Channel config used as-is (no merge), because schemas differ.
+
 ### Diff Engine (`diff/`)
 
 ```typescript
@@ -219,6 +307,7 @@ ncoctl validate --channel x  # Validate specific channel
 
 ncoctl plan                  # Show all pending changes
 ncoctl plan --channel x      # Plan for specific channel
+ncoctl plan --verbose        # Include unchanged configs and unmanaged list
 ncoctl plan --json           # Output as JSON
 
 ncoctl apply                 # Apply changes (with confirmation)
@@ -228,6 +317,75 @@ ncoctl apply --channel x     # Apply specific channel
 ncoctl serve                 # Start web interface
 ncoctl serve --port 8080     # Custom port
 ```
+
+### CLI Output Format
+
+#### Plan Output (default)
+
+```
+Planning changes...
+
+3 configs unchanged
+
+se-klarna/klarna_checkout_adapter:
+  + options.newField: "value"
+  - options.oldField: "removed"
+  ~ apiSettings.timeout: 30 → 60
+
+se-walley/walley_checkout_adapter:
+  + (new configuration)
+
+Plan: 1 to create, 1 to update, 3 unchanged, 10 unmanaged
+```
+
+#### Plan Output (verbose: `--verbose`)
+
+Shows all configs including unchanged, plus full unmanaged list:
+
+```
+Planning changes...
+
+se-klarna/norce_adapter:
+  (no changes)
+
+se-klarna/klarna_checkout_adapter:
+  + options.newField: "value"
+  ...
+
+⚠ Unmanaged configurations (10):
+  - feature-test-1/norce_adapter
+  - feature-test-2/norce_adapter
+  - ...
+
+Plan: 1 to create, 1 to update, 3 unchanged, 10 unmanaged
+```
+
+#### Diff Symbols
+
+| Symbol | Color | Meaning |
+|--------|-------|---------|
+| `+` | Green | Added field |
+| `-` | Red | Removed field |
+| `~` | Yellow | Changed field |
+| `✔` | Green | Success message |
+| `✗` | Red | Error message |
+| `⚠` | Yellow | Warning message |
+
+#### Value Display
+
+| Type | Format | Color |
+|------|--------|-------|
+| String | `"value"` | Cyan |
+| Number | `123` | Yellow |
+| Boolean | `true` | Yellow |
+| Object/Array | `{"a":1}` (truncated at 100 chars) | Dim |
+| null | `null` | Dim |
+
+#### Color Control
+
+- `NO_COLOR` env var disables colors
+- `FORCE_COLOR` env var forces colors
+- Otherwise auto-detect based on TTY
 
 ## Web Package (`@nco-control/web`)
 
@@ -312,23 +470,64 @@ exclude:
 
 ### Directory Structure (User's Project)
 
-**Conceptual example** (exact structure TBD):
-
 ```
 my-checkout-configs/
 ├── ncoctl.config.yaml
-├── .env                      # Secrets (gitignored)
+├── .env                            # Secrets (gitignored)
 ├── .gitignore
-├── norce_adapter.yaml        # Shared config (applies to all channels)
-├── store-se-klarna/
-│   ├── klarna_checkout_adapter.yaml
-│   └── norce_adapter.yaml    # Channel-specific overrides
-└── store-se-walley/
-    ├── walley_checkout_adapter.yaml
-    └── norce_adapter.yaml
+├── norce_adapter.yaml              # Shared - all channels inherit
+├── klarna_checkout_adapter.yaml    # Shared - Klarna channels inherit
+├── se-klarna/
+│   ├── klarna_checkout_adapter.yaml  # Inherits, adds overrides
+│   └── norce_adapter.yaml            # Inherits, adds logistics
+├── se-klarna-ingrid/
+│   ├── klarna_checkout_adapter.yaml  # Inherits, overrides shipping
+│   ├── ingrid_adapter.yaml           # Channel-specific
+│   └── norce_adapter.yaml            # Inherits only
+└── se-walley/
+    ├── walley_checkout_adapter.yaml  # No shared walley config
+    └── norce_adapter.yaml            # Inherits only
 ```
 
-The folder structure will be refined during implementation to avoid collisions between reserved names and channel names.
+### Configuration Inheritance
+
+Root-level config files serve as **inheritance bases** for channels. A channel inherits from a root config only when:
+
+1. The channel has a file with the **same name** (e.g., `klarna_checkout_adapter.yaml`)
+2. The channel file contains at least the **`id` field** (e.g., `id: klarna_checkout_adapter`)
+
+**Inheritance rule**: If a channel has `{adapter}.yaml` with an `id` field, it inherits from root `{adapter}.yaml` and can override specific fields. If the channel doesn't have that file, the root config is ignored for that channel.
+
+**Example: Minimal channel override**
+
+```yaml
+# se-klarna-ingrid/klarna_checkout_adapter.yaml
+# Inherits everything from root, only overrides shipping
+id: klarna_checkout_adapter
+
+providesShipping: false
+shippingOptions: []
+```
+
+**Example: Channel with additional options**
+
+```yaml
+# se-klarna-recurring/klarna_checkout_adapter.yaml
+id: klarna_checkout_adapter
+
+options:
+  useRecurringPayment: true
+```
+
+**Merge behavior**:
+- Deep merge: channel values override root values at the field level
+- Arrays are replaced, not merged (e.g., `shippingOptions: []` replaces the root array)
+- Null values remove fields: `shippingOptions: null` removes the field entirely
+
+This pattern allows:
+- **DRY configs**: Common settings defined once at root
+- **Explicit opt-in**: Channels only inherit what they declare
+- **Clear diffs**: Channel files show only what's different from the default
 
 ## Data Flow
 

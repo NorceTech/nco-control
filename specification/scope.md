@@ -14,6 +14,13 @@ Enable teams to manage Norce Checkout configurations as code, with the ability t
 
 ### CLI (`ncoctl`)
 
+#### `ncoctl init`
+Initialize a new nco-control project.
+- Generate `ncoctl.config.yaml` with sensible defaults
+- Create `.env.example` for secret placeholders
+- Create `.gitignore` with appropriate entries
+- Show default excludes so users know what's auto-excluded
+
 #### `ncoctl validate`
 Validate local configuration files against their JSON schemas.
 - Fetch schemas from `$schema` URLs (with local caching)
@@ -63,30 +70,111 @@ Start a local web interface.
 - Display pending changes (local vs remote)
 - Allow triggering `apply` with confirmation
 
+### Project Configuration (`ncoctl.config.yaml`)
+
+```yaml
+# Required fields
+merchant: norcecheckouttest
+
+api:
+  baseUrl: https://configuration.checkout.test.internal.norce.tech
+  # token: "${NCOCTL_API_TOKEN}"  # Optional, can use env var instead
+
+# Optional fields (with defaults)
+schema:
+  cacheDir: .ncoctl/schemas    # Where to cache JSON schemas
+  cacheTtl: 86400              # Cache TTL in seconds (24 hours)
+  skip: false                  # Skip schema validation
+
+output:
+  format: text                 # "text" or "json"
+  verbose: false               # Verbose output by default
+```
+
+| Field | Required | Default | Description |
+|-------|----------|---------|-------------|
+| `merchant` | Yes | - | Merchant identifier for API calls |
+| `api.baseUrl` | Yes | - | Configuration API base URL |
+| `api.token` | No | - | Bearer token (env var `NCOCTL_API_TOKEN` takes precedence) |
+| `schema.cacheDir` | No | `.ncoctl/schemas` | Schema cache directory |
+| `schema.cacheTtl` | No | `86400` | Schema cache TTL (seconds) |
+| `schema.skip` | No | `false` | Skip schema validation |
+| `output.format` | No | `text` | Default output format |
+| `output.verbose` | No | `false` | Verbose output by default |
+
+### Channel Discovery
+
+Channels are auto-discovered based on directory structure:
+
+```
+project/
+├── ncoctl.config.yaml          # Project config (not a channel)
+├── .env                        # Secrets (not a channel)
+├── .git/                       # Ignored (starts with .)
+├── .ncoctl/                    # Ignored (starts with .)
+├── node_modules/               # Ignored (explicit)
+├── norce_adapter.yaml          # Root shared config
+├── klarna_checkout_adapter.yaml
+├── se-klarna/                  # ✅ Channel (has .yaml files)
+│   ├── norce_adapter.yaml
+│   └── klarna_checkout_adapter.yaml
+├── se-klarna-ingrid/           # ✅ Channel
+│   └── ...
+└── docs/                       # Ignored (no .yaml files)
+    └── README.md
+```
+
+**Discovery rules:**
+1. List all directories in project root
+2. Exclude: directories starting with `.` or `_`, and `node_modules`
+3. A directory is a channel if it contains at least one `.yaml` file
+4. The directory name IS the channel name (sent to API as-is)
+
+**Root shared configs:**
+- `.yaml` files in project root (not in a subdirectory) are shared configs
+- Channels inherit from root configs via the inheritance mechanism (see Architecture)
+
 ### Configuration Structure
 
 Each repository manages **one merchant**. Channels can share base configurations with per-channel overrides.
 
-**Conceptual example** (exact structure TBD):
-
 ```
 project/
-├── ncoctl.config.yaml       # Project settings (merchant, API URL, etc.)
+├── ncoctl.config.yaml       # Project settings
 ├── .env                     # Secrets (gitignored)
-├── norce_adapter.yaml       # Shared configuration (applies to all channels)
-├── store-se-klarna/
-│   ├── klarna_checkout_adapter.yaml
-│   └── norce_adapter.yaml   # Channel-specific overrides
-├── store-se-walley/
+├── norce_adapter.yaml       # Shared - all channels inherit
+├── klarna_checkout_adapter.yaml  # Shared - Klarna channels inherit
+├── se-klarna/
+│   ├── klarna_checkout_adapter.yaml  # Overrides (must have `id` field)
+│   └── norce_adapter.yaml            # Overrides
+├── se-walley/
 │   ├── walley_checkout_adapter.yaml
-│   └── norce_adapter.yaml   # Channel-specific overrides
+│   └── norce_adapter.yaml
 └── ...
 ```
 
-The folder structure and inheritance mechanism will be refined during implementation. Key requirements:
-- Shared configs that apply across channels
-- Per-channel overrides
-- No collision between folder names and channel names
+**Inheritance rule:** A channel inherits from a root config only when:
+1. The channel has a file with the **same name**
+2. The channel file contains at least the **`id` field**
+
+This ensures explicit opt-in - channels without the file don't inherit.
+
+**Merge behavior:**
+- Objects are deep-merged (channel values override root values)
+- Arrays are **replaced**, not concatenated
+- `null` explicitly **removes** a field: `fieldName: null` removes the inherited value
+- If `$schema` differs between root and channel, inheritance is skipped (prevents cross-version mixing)
+
+See [Architecture](./architecture.md#merge-engine-merge) for detailed examples.
+
+### Unmanaged Configurations
+
+Configurations that exist remotely but not locally are **unmanaged**:
+- `plan` ignores them (no diff shown)
+- `apply` does not delete them
+- They remain on the remote API untouched
+
+This is intentional - ncoctl only manages what's in the repo. To delete a configuration, use the API directly or a future `ncoctl delete` command.
 
 ### Secret Management
 
@@ -94,6 +182,20 @@ The folder structure and inheritance mechanism will be refined during implementa
 - Referenced in YAML: `identityClientSecret: "${NORCE_IDENTITY_SECRET}"`
 - Substituted at plan/apply time
 - Web UI shows placeholder, not actual value
+
+### Default Excludes
+
+Some configurations are auto-generated by admin/checkout and typically don't need manual management. The tool excludes these by default:
+
+- `admin_meta` - Auto-generated list of which adapters exist on the channel
+- `checkout_application` - Auto-generated checkout settings
+- `checkout_layout_*` - Auto-generated layout configurations
+- `checkout_meta_*` - Auto-generated meta/styling configurations
+
+**Behavior:**
+- These are excluded from `plan` and `apply` by default
+- `ncoctl init` generates config showing these defaults explicitly
+- Users can override by adding configs to an `include` list if needed
 
 ## Out of Scope for MVP
 
@@ -133,6 +235,13 @@ Intermediate inheritance levels for grouping channels (e.g., by shipping provide
 - Keyboard shortcuts
 - Export/import functionality
 - Diff against specific git commits
+
+### Nice-to-Have (Unscheduled)
+- `ncoctl delete` command for removing remote configurations
+- Nested channel directories (e.g., `se/klarna/` → channel name `se-klarna`)
+- Warnings for directories without .yaml files (potential misconfiguration)
+- Channel groupings/intermediate inheritance levels
+- Channel exclusion patterns in config (e.g., `exclude.channels: ["demo-*", "test-*"]`)
 
 ## Success Criteria for MVP
 
