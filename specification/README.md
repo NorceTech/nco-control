@@ -10,6 +10,7 @@ This folder contains the specification documents for **Norce Checkout Control** 
 | [Scope](./scope.md) | MVP scope and feature roadmap |
 | [Architecture](./architecture.md) | Technical architecture and project structure |
 | [Tech Stack](./tech-stack.md) | Technology choices and rationale |
+| [Testing Strategy](./testing-strategy.md) | Testing approach and patterns |
 | [API](./api.md) | Configuration API documentation |
 
 ## Naming
