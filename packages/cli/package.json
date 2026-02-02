@@ -1,0 +1,30 @@
+{
+  "name": "@nco-control/cli",
+  "version": "0.1.0",
+  "description": "CLI for nco-control",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "ncoctl": "./dist/bin/ncoctl.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch"
+  },
+  "dependencies": {
+    "@nco-control/core": "^0.1.0",
+    "commander": "^12.0.0",
+    "picocolors": "^1.0.0"
+  },
+  "files": ["dist"],
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

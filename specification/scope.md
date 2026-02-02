@@ -225,6 +225,7 @@ Intermediate inheritance levels for grouping channels (e.g., by shipping provide
 - Improved documentation
 
 ### Phase 3: Advanced Features
+- **Configuration variants** - Named variants to reduce duplication when multiple channels share the same config variant. See [variants.md](./variants.md).
 - Channel groupings (intermediate inheritance levels)
 - Configuration templates/presets
 - Audit log of changes

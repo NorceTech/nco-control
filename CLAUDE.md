@@ -113,3 +113,10 @@ store-se-klarna/
 - `.internal/` - Local notes and reference material (gitignored)
 
 When adding features, update specification docs if the public API changes.
+
+## Active Technologies
+- TypeScript 5.x on Node.js >= 20 (LTS) + Commander.js (CLI), Hono (web server), React 18 + Mantine 7 (web UI), Ajv (schema validation), js-yaml (YAML parsing), deep-diff (diffing) (001-nco-control-mvp)
+- Local filesystem (YAML configs, schema cache); remote Configuration API (001-nco-control-mvp)
+
+## Recent Changes
+- 001-nco-control-mvp: Added TypeScript 5.x on Node.js >= 20 (LTS) + Commander.js (CLI), Hono (web server), React 18 + Mantine 7 (web UI), Ajv (schema validation), js-yaml (YAML parsing), deep-diff (diffing)
