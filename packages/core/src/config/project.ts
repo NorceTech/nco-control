@@ -142,7 +142,7 @@ function applyDefaults(config: ProjectConfig, projectDir: string): ProjectConfig
     api: {
       ...config.api,
       // Token from env var takes precedence
-      token: process.env.NCOCTL_API_TOKEN ?? config.api.token,
+      token: process.env.NCO_API_TOKEN ?? config.api.token,
     },
     schema: {
       cacheDir: config.schema?.cacheDir ?? path.join(projectDir, DEFAULT_SCHEMA_CACHE_DIR),

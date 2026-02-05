@@ -55,7 +55,7 @@ cp .env.example .env
 
 Edit `.env`:
 ```
-NCOCTL_API_TOKEN=your-bearer-token-here
+NCO_API_TOKEN=your-bearer-token-here
 ```
 
 ## Create Your First Configuration
@@ -244,7 +244,7 @@ Ensure all `${VAR}` references have corresponding entries in `.env`.
 
 ### "API error: 401 Unauthorized"
 
-Check that `NCOCTL_API_TOKEN` is set and valid.
+Check that `NCO_API_TOKEN` is set and valid.
 
 ### "Validation failed"
 

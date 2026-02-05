@@ -301,7 +301,7 @@ These options apply to all commands:
 
 | Variable | Description | Used By |
 |----------|-------------|---------|
-| `NCOCTL_API_TOKEN` | Bearer token for Configuration API | plan, apply |
+| `NCO_API_TOKEN` | Bearer token for Configuration API | plan, apply |
 | `NO_COLOR` | Disable colored output | all |
 | `FORCE_COLOR` | Force colored output | all |
 

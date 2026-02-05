@@ -57,10 +57,10 @@ export async function applyConfigs(
 
   // Load environment and get token
   const env = await getEnvironment(projectDir);
-  const token = env['NCOCTL_API_TOKEN'] ?? config.api.token;
+  const token = env['NCO_API_TOKEN'] ?? config.api.token;
   if (!token) {
     throw new Error(
-      'API token required. Set NCOCTL_API_TOKEN environment variable or api.token in config.'
+      'API token required. Set NCO_API_TOKEN environment variable or api.token in config.'
     );
   }
 

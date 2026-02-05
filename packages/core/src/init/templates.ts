@@ -16,8 +16,8 @@ merchant: ${merchant}
 api:
   # API base URL
   baseUrl: https://checkout-configuration.example.com
-  # Bearer token (can use NCOCTL_API_TOKEN env var)
-  # token: "\${NCOCTL_API_TOKEN}"
+  # Bearer token (can use NCO_API_TOKEN env var)
+  # token: "\${NCO_API_TOKEN}"
 
 # Optional: Schema validation settings
 schema:
@@ -44,7 +44,7 @@ export const ENV_EXAMPLE_TEMPLATE = `# Environment variables for nco-control
 # Copy this file to .env and fill in your values
 
 # API token for Configuration API (required for plan/apply)
-NCOCTL_API_TOKEN=your-api-token-here
+NCO_API_TOKEN=your-api-token-here
 
 # Add your secret values here to be substituted in configs
 # MY_SECRET_KEY=secret-value

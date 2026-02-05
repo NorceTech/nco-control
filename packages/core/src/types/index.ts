@@ -9,7 +9,7 @@ export interface ProjectConfig {
   api: {
     /** Configuration API base URL */
     baseUrl: string;
-    /** Optional bearer token (env var NCOCTL_API_TOKEN takes precedence) */
+    /** Optional bearer token (env var NCO_API_TOKEN takes precedence) */
     token?: string;
   };
 

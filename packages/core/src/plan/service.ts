@@ -78,10 +78,10 @@ export async function generatePlan(
   const channelsWithSecrets = substituteSecretsInChannels(channels, env);
 
   // Step 4: Get API token
-  const token = env['NCOCTL_API_TOKEN'] ?? config.api.token;
+  const token = env['NCO_API_TOKEN'] ?? config.api.token;
   if (!token) {
     throw new Error(
-      'API token required. Set NCOCTL_API_TOKEN environment variable or api.token in config.'
+      'API token required. Set NCO_API_TOKEN environment variable or api.token in config.'
     );
   }
 

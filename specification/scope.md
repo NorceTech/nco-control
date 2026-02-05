@@ -78,7 +78,7 @@ merchant: norcecheckouttest
 
 api:
   baseUrl: https://configuration.checkout.test.internal.norce.tech
-  # token: "${NCOCTL_API_TOKEN}"  # Optional, can use env var instead
+  # token: "${NCO_API_TOKEN}"  # Optional, can use env var instead
 
 # Optional fields (with defaults)
 schema:
@@ -95,7 +95,7 @@ output:
 |-------|----------|---------|-------------|
 | `merchant` | Yes | - | Merchant identifier for API calls |
 | `api.baseUrl` | Yes | - | Configuration API base URL |
-| `api.token` | No | - | Bearer token (env var `NCOCTL_API_TOKEN` takes precedence) |
+| `api.token` | No | - | Bearer token (env var `NCO_API_TOKEN` takes precedence) |
 | `schema.cacheDir` | No | `.ncoctl/schemas` | Schema cache directory |
 | `schema.cacheTtl` | No | `86400` | Schema cache TTL (seconds) |
 | `schema.skip` | No | `false` | Skip schema validation |
