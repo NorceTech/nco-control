@@ -1,0 +1,5 @@
+# Norway channel - inherits from root
+id: walley_checkout_adapter
+
+apiSettings:
+  storeId: "${WALLEY_STORE_ID_NO}"

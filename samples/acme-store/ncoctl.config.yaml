@@ -1,0 +1,11 @@
+# nco-control configuration for acme-store
+#
+# Update 'merchant' and 'api.baseUrl' to match your setup.
+# See: https://github.com/NorceTech/nco-control
+
+merchant: acme-store
+
+api:
+  # Partner API URL pattern:
+  # https://{slug}.api-se.{env}.norce.tech/checkout/configuration
+  baseUrl: https://acme-store.api-se.stage.norce.tech/checkout/configuration

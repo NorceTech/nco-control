@@ -1,0 +1,8 @@
+# Sweden channel - inherits from root
+id: norce_adapter
+
+settings:
+  applicationId: 1001
+
+country:
+  defaultCountry: SE

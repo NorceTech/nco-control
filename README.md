@@ -61,36 +61,37 @@ api:
 Create `.env` with your API token:
 
 ```bash
-NCOCTL_API_TOKEN=your-api-token-here
+NCO_API_TOKEN=your-api-token-here
 ```
 
 > **Getting an API token:** Contact Norce support or generate one through the partner portal.
 
 ### 3. Add Configuration Files
 
-Create adapter configurations as YAML files. For example, `klarna_checkout_adapter.yaml`:
+Create adapter configurations as YAML files. For example, `walley_checkout_adapter.yaml`:
 
 ```yaml
-$schema: https://checkout.norce.tech/api/v1/schemas/klarna_checkout_adapter
-id: klarna_checkout_adapter
+$schema: https://acme-store.api-se.stage.norce.tech/checkout/walley-adapter/openapi/v1/schemas/walley_checkout_adapter.json
+id: walley_checkout_adapter
 
-apiCredentials:
-  username: "${KLARNA_API_USERNAME}"
-  password: "${KLARNA_API_PASSWORD}"
+apiSettings:
+  clientId: "${WALLEY_CLIENT_ID}"
+  apiSecret: "${WALLEY_API_SECRET}"
 
 options:
-  colorButton: "#333333"
+  discountText:
+    sv-SE: Rabatt
+    nb-NO: Rabatt
 ```
 
-Create channel directories with overrides. For example, `sweden/klarna_checkout_adapter.yaml`:
+Create channel directories with overrides. For example, `norway/walley_checkout_adapter.yaml`:
 
 ```yaml
-id: klarna_checkout_adapter
+id: walley_checkout_adapter
 
-# Override options for Sweden
-options:
-  purchaseCountry: SE
-  locale: sv-SE
+# Each market has its own Walley store
+apiSettings:
+  storeId: "${WALLEY_STORE_ID_NO}"
 ```
 
 ### 4. Preview and Apply
@@ -111,11 +112,10 @@ Example `ncoctl plan` output:
 ```
 Planning changes for acme-store...
 
-sweden/klarna_checkout_adapter
-  ~ options.colorButton: "#000000" → "#333333"
-  + options.locale: "sv-SE"
+sweden/walley_checkout_adapter
+  ~ apiSettings.storeId: "1234" → "5678"
 
-norway/klarna_checkout_adapter
+norway/walley_checkout_adapter
   (no changes)
 
 Plan: 0 to create, 1 to update, 1 unchanged
@@ -123,23 +123,20 @@ Plan: 0 to create, 1 to update, 1 unchanged
 
 ## Project Structure
 
-A typical configuration project:
+A typical configuration project (see [samples/acme-store](./samples/acme-store) for a working example):
 
 ```
 acme-store-checkout/
 ├── ncoctl.config.yaml              # Project settings
 ├── .env                            # Secrets (gitignored)
-├── klarna_checkout_adapter.yaml    # Shared base config
-├── ingrid_adapter.yaml
+├── norce_adapter.yaml              # Shared base configs
+├── walley_checkout_adapter.yaml
 ├── sweden/                         # Channel: sweden
-│   ├── klarna_checkout_adapter.yaml
-│   ├── ingrid_adapter.yaml
-│   └── norce_adapter.yaml
-├── norway/                         # Channel: norway
-│   ├── klarna_checkout_adapter.yaml
-│   └── norce_adapter.yaml
-└── finland/                        # Channel: finland
-    └── norce_adapter.yaml
+│   ├── norce_adapter.yaml
+│   └── walley_checkout_adapter.yaml
+└── norway/                         # Channel: norway
+    ├── norce_adapter.yaml
+    └── walley_checkout_adapter.yaml
 ```
 
 ### Configuration Inheritance
@@ -147,12 +144,12 @@ acme-store-checkout/
 Root-level files are base configurations. Channels inherit from them when they have a matching file with an `id` field:
 
 ```yaml
-# sweden/klarna_checkout_adapter.yaml
-id: klarna_checkout_adapter
+# norway/norce_adapter.yaml
+id: norce_adapter
 
 # Only specify what differs from root
-options:
-  purchaseCountry: SE
+country:
+  defaultCountry: "NO"
 ```
 
 The channel config is deep-merged with the root config. Arrays are replaced, not merged. Use `null` to explicitly remove an inherited field.
@@ -184,7 +181,7 @@ output:
 
 | Variable | Description |
 |----------|-------------|
-| `NCOCTL_API_TOKEN` | Bearer token for Configuration API |
+| `NCO_API_TOKEN` | Bearer token for Configuration API |
 
 Set via environment variable or `.env` file in project root.
 
@@ -192,11 +189,13 @@ Set via environment variable or `.env` file in project root.
 
 ```bash
 # Required for plan/apply
-NCOCTL_API_TOKEN=your-api-token-here
+NCO_API_TOKEN=your-api-token-here
 
 # Adapter secrets - referenced as ${VAR_NAME} in YAML
-KLARNA_API_USERNAME=your-username
-KLARNA_API_PASSWORD=your-password
+WALLEY_STORE_ID_SE=your-sweden-store-id
+WALLEY_STORE_ID_NO=your-norway-store-id
+WALLEY_CLIENT_ID=your-client-id
+WALLEY_API_SECRET=your-api-secret
 NORCE_IDENTITY_SECRET=your-secret
 ```
 

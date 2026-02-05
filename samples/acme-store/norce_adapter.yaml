@@ -1,0 +1,24 @@
+# Shared Norce adapter configuration
+# Channels inherit from this when they have a norce_adapter.yaml with an `id` field
+
+$schema: https://acme-store.api-se.stage.norce.tech/checkout/norce-adapter/openapi/v2/schemas/norce_adapter.json
+id: norce_adapter
+active: true
+
+adapter:
+  internalUrl: https://acme-store.api-se.stage.norce.tech/checkout/norce-adapter
+  publicUrl: https://acme-store.api-se.stage.norce.tech/checkout/norce-adapter
+
+settings:
+  clientId: 1234
+
+api:
+  identityAddress: https://identity.commerce.stage.norce.tech/connect/token
+  identityClientId: your-client-id
+  identityClientSecret: "${NORCE_IDENTITY_SECRET}"
+  identityScope: checkout
+
+application:
+  imageBaseUrl: https://acme-store.cdn-norce.tech/
+  weightUnit: kg
+  lengthUnit: cm

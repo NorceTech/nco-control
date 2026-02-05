@@ -1,0 +1,8 @@
+# Norway channel - inherits from root
+id: norce_adapter
+
+settings:
+  applicationId: 1002
+
+country:
+  defaultCountry: "NO"

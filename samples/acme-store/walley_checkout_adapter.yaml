@@ -1,0 +1,28 @@
+# Shared Walley adapter configuration
+# Channels inherit from this when they have a walley_checkout_adapter.yaml with an `id` field
+
+$schema: https://acme-store.api-se.stage.norce.tech/checkout/walley-adapter/openapi/v1/schemas/walley_checkout_adapter.json
+id: walley_checkout_adapter
+active: true
+
+adapter:
+  internalUrl: https://acme-store.api-se.stage.norce.tech/checkout/walley-adapter
+  publicUrl: https://acme-store.api-se.stage.norce.tech/checkout/walley-adapter
+
+apiSettings:
+  apiUrl: https://api.walley.com
+  authenticationUrl: https://api.walley.com
+  frontEndUrl: https://checkout.walley.com
+  scope: "${WALLEY_SCOPE}"
+  clientId: "${WALLEY_CLIENT_ID}"
+  apiSecret: "${WALLEY_API_SECRET}"
+
+redirectUrls:
+  merchantTermsUri: https://acme-store.com/terms
+  redirectPageUri: https://acme-store.com/order-confirmation
+
+options:
+  discountText:
+    sv-SE: Rabatt
+    nb-NO: Rabatt
+    en-GB: Discount
